@@ -39,6 +39,7 @@ import qualified Data.Set as S
 import System.IO.Unsafe (unsafePerformIO)
 import Control.Concurrent (forkIO, threadDelay)
 import Database.MongoDB.Internal.Util ((<.>), true1)
+import Data.UString (unpack)
 
 -- * Admin
 

@@ -57,6 +57,8 @@ import Data.Maybe (listToMaybe, catMaybes)
 import Data.UString as U (dropWhile, any, tail)
 import Control.Monad.Util (MonadIO', loop)
 import Database.MongoDB.Internal.Util ((<.>), true1)
+import Data.UString (unpack)
+
 
 mapErrorIO :: (Throw e m, MonadIO m) => (e' -> e) -> ErrorT e' IO a -> m a
 mapErrorIO f = throwLeft' f . liftIO . runErrorT
