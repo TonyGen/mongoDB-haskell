@@ -505,10 +505,11 @@ nextBatch (Cursor fcol batchSize var) = modifyMVar var $ \dBatch -> do
 
 next :: (MonadIO m, MonadBaseControl IO m) => Cursor -> Action m (Maybe Document)
 -- ^ Return next document in query result, or Nothing if finished.
-next (Cursor fcol batchSize var) = modifyMVar var nextState where
+next (Cursor fcol batchSize var) = modifyMVar var $ nextState False where
 	-- Pre-fetch next batch promise from server when last one in current batch is returned.
-	-- nextState:: DelayedBatch -> Action m (DelayedBatch, Maybe Document)
-	nextState dBatch = do
+	-- The tailCheck param is set to True when checking for updates on a tailable cursor after getting an empty batch from the server.
+	-- nextState:: Bool -> DelayedBatch -> Action m (DelayedBatch, Maybe Document)
+	nextState tailCheck dBatch = do
 		Batch limit cid docs <- fulfill dBatch
 		case docs of
 			doc : docs' -> do
@@ -518,7 +519,11 @@ next (Cursor fcol batchSize var) = modifyMVar var nextState where
 				return (dBatch', Just doc)
 			[] -> if cid == 0
 				then return (return $ Batch 0 0 [], Nothing)  -- finished
-				else error $ "server returned empty batch but says more results on server"
+				else do
+					dBatch' <- nextBatch' limit cid
+					if tailCheck
+						then return $ (dBatch', Nothing)
+						else nextState True dBatch'
 	nextBatch' limit cid = request [] (GetMore fcol batchSize' cid, remLimit)
 		where (batchSize', remLimit) = batchSizeRemainingLimit batchSize limit
 
