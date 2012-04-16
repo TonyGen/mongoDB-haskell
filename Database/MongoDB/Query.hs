@@ -313,7 +313,7 @@ save_ :: (MonadIO' m) => Collection -> Document -> Action m ()
 -- ^ Save document to collection, meaning insert it if its new (has no \"_id\" field) or update it if its not new (has \"_id\" field)
 save_ col doc = case look "_id" doc of
     Nothing -> insert_ col doc
-    Just i -> repsert (Select ["_id" := i] col) doc
+    Just i  -> repsert (Select ["_id" := i] col) doc
 
 replace :: (MonadIO m) => Selection -> Document -> Action m ()
 -- ^ Replace first document in selection with given document
