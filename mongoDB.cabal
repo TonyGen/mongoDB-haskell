@@ -1,5 +1,5 @@
 name: mongoDB
-version: 1.2.0
+version: 1.2.1
 build-type: Simple
 license: OtherLicense
 license-file: LICENSE
