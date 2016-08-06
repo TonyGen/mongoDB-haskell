@@ -1,11 +1,11 @@
 -- | Query and update documents
 
-{-# LANGUAGE OverloadedStrings, RecordWildCards, NamedFieldPuns, TupleSections, FlexibleContexts, FlexibleInstances, UndecidableInstances, MultiParamTypeClasses, GeneralizedNewtypeDeriving, StandaloneDeriving, TypeSynonymInstances, TypeFamilies #-}
+{-# LANGUAGE OverloadedStrings, RecordWildCards, NamedFieldPuns, TupleSections, FlexibleContexts, FlexibleInstances, UndecidableInstances, MultiParamTypeClasses, GeneralizedNewtypeDeriving, StandaloneDeriving, TypeSynonymInstances, TypeFamilies, DeriveDataTypeable #-}
 
 module Database.MongoDB.Query (
 	-- * Monad
 	Action, access, Failure(..), ErrorCode,
-	AccessMode(..), GetLastError, master, slaveOk, accessMode, 
+	AccessMode(..), GetLastError, master, slaveOk, accessMode,
 	MonadDB(..),
 	-- * Database
 	Database, allDatabases, useDb, thisDatabase,
@@ -44,7 +44,9 @@ import Data.Bson (Document, at, valueAt, lookup, look, Field(..), (=:), (=?), La
 import Database.MongoDB.Internal.Protocol (Pipe, Notice(..), Request(GetMore, qOptions, qFullCollection, qSkip, qBatchSize, qSelector, qProjector), Reply(..), QueryOption(..), ResponseFlag(..), InsertOption(..), UpdateOption(..), DeleteOption(..), CursorId, FullCollection, Username, Password, pwKey)
 import qualified Database.MongoDB.Internal.Protocol as P (send, call, Request(Query))
 import Database.MongoDB.Internal.Util (MonadIO', loop, liftIOE, true1, (<.>))
+import Data.Typeable (Typeable)
 import Control.Concurrent.MVar.Lifted
+import Control.Exception (Exception)
 import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.State (StateT)
@@ -93,7 +95,9 @@ data Failure =
 	| QueryFailure ErrorCode String  -- ^ Query failed for some reason as described in the string
 	| WriteFailure ErrorCode String  -- ^ Error observed by getLastError after a write, error description is in string
 	| DocNotFound Selection  -- ^ 'fetch' found no document matching selection
-	deriving (Show, Eq)
+	deriving (Show, Eq, Typeable)
+
+instance Exception Failure
 
 type ErrorCode = Int
 -- ^ Error code from getLastError or query failure
@@ -301,7 +305,7 @@ assignId doc = if X.any (("_id" ==) . label) doc
 	then return doc
 	else (\oid -> ("_id" =: oid) : doc) <$> genObjectId
 
--- ** Update 
+-- ** Update
 
 save :: (MonadIO' m) => Collection -> Document -> Action m ()
 -- ^ Save document to collection, meaning insert it if its new (has no \"_id\" field) or update it if its not new (has \"_id\" field)
