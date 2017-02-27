@@ -427,18 +427,23 @@ queryRequest isExplain Query{..} = do
 	ctx <- Action ask
 	return $ queryRequest' (myReadMode ctx) (myDatabase ctx)
  where
-	queryRequest' rm db = (P.Query{..}, remainingLimit) where
-		qOptions = readModeOption rm ++ options
-		qFullCollection = db <.> coll selection
-		qSkip = fromIntegral skip
-		(qBatchSize, remainingLimit) = batchSizeRemainingLimit batchSize limit
-		qProjector = project
+	queryRequest' rm db =
+		( P.Query (readModeOption rm ++ options)
+		          (db <.> coll selection)
+		          (fromIntegral skip)
+		          qBS
+		          (if null special
+		             then selector selection
+		             else ("$query" =: selector selection) : special)
+		          project
+		, remainingLimit )
+	 where
+		(qBS, remainingLimit) = batchSizeRemainingLimit batchSize limit
 		mOrder = if null sort then Nothing else Just ("$orderby" =: sort)
 		mSnapshot = if snapshot then Just ("$snapshot" =: True) else Nothing
 		mHint = if null hint then Nothing else Just ("$hint" =: hint)
 		mExplain = if isExplain then Just ("$explain" =: True) else Nothing
 		special = catMaybes [mOrder, mSnapshot, mHint, mExplain]
-		qSelector = if null special then s else ("$query" =: s) : special where s = selector selection
 
 batchSizeRemainingLimit :: BatchSize -> Limit -> (Int32, Limit)
 -- ^ Given batchSize and limit return P.qBatchSize and remaining limit
